@@ -7,7 +7,8 @@ usually unique to an analysis. The run table should be the first
 command line argument.
 '''
 
-import csv, sys
+import csv
+import sys
 import yaml
 
 def paired_vs_single(library_layout):
@@ -22,50 +23,58 @@ def paired_vs_single(library_layout):
         sys.exit("Encountered unknown library layout: '{}'. Please implement handling before using this script's output.\n", library_layout)
 
 
-def amplification(assay):
+def amplification( sample ):
     '''
     Determine whether the library is amplified and if so with which method.
     '''
-    if assay == 'MDA':
-        return 'MDA'
-    elif assay == 'WGA':
-        sys.stderr.write("Undetermined whole genome amplification method '%s', defaults to 'MDA'. Please make sure this default is correct for your data.\n" % assay)
-        return 'MDA'
-    elif assay == 'AMPLICON':
-        return 'AMPLICON'
-    elif assay == 'WXS':
-        return 'none'
+    if ( sample == 'YH1' ) | ( sample == 'YH2' ):
+        return "MDA"
+    elif ( sample == 'YH-Control' ) | ( sample == 'LC-T1' ) | ( sample == 'LN-T1' ):
+        return "none"
     else:
-        sys.exit("Encountered unknown assay type: '{}'. Please implement handling before using this script's output.\n", assay)
+        cell = sample.split(sep = '-')[0]
+        if ( cell == "LC" ) | ( cell == "LN" ):
+            return "MDA"
+        else:
+            sys.exit("Encountered unknown sample name: '{}'. Please implement amplification handling before using this script's output.\n", sn)
 
 
-def selection(assay, selection):
+def selection( sample ):
     '''
     Determine whether the library underwent some sort of target selection.
     '''
-    if ( assay == 'WXS' ) & ( selection == 'Hybrid Selection' ):
-        return 'WX'
-    elif ( assay == 'WGA' ) & ( selection == 'PCR' ):
-        return 'AMPLICON'
-    elif ( assay == 'AMPLICON' ) & ( selection == 'PCR' ):
-        return 'AMPLICON'
+    if ( sample == 'YH1' ) | ( sample == 'YH2' ) | ( sample == 'YH-Control' ):
+        return "WG"
+    elif ( sample == 'LC-T1' ) | ( sample == 'LN-T1' ):
+        return "WX"
     else:
-        sys.exit("Encountered unknown assay type: '{}'. Please implement handling before using this script's output.\n", assay)
+        cell = sample.split(sep = '-')[0]
+        if ( cell == "LC" ) | ( cell == "LN" ):
+            return "WX"
+        else:
+            sys.exit("Encountered unknown sample name: '{}'. Please implement library selection handling before using this script's output.\n", sn)
 
 
-def batch_key( sn, amp ):
+def batch_key( sample ):
     '''
     Create a unique batch key for each run, to sensibly group runs.
     '''
-    patient = sn.split(sep = '_')[0]
-    if amp == 'none':
-        return patient + "_bulk"
-    elif amp == 'AMPLICON':
-        return patient + "_amplicon"
-    elif amp == 'MDA':
-        return patient + "_cells"
+    if ( sample == 'YH1' ) | ( sample == 'YH2' ):
+        return "YH_single-cell"
+    elif sample == 'YH-Control':
+        return "YH_bulk"
+    elif sample == 'LC-T1':
+        return "ET_tumor_bulk"
+    elif sample == 'LN-T1':
+        return "ET_normal_bulk"
     else:
-        sys.exit("Encountered unknown amplification type: '{}'. Please implement handling before using this script's output.\n", amplif)
+        cell = sample.split(sep = '-')[0]
+        if cell == "LC":
+            return "ET_tumor_single-cell"
+        elif cell == "LN":
+            return "ET_normal_single-cell"
+        else:
+            sys.exit("Encountered unknown sample name: '{}'. Please implement batch handling before using this script's output.\n", sn)
 
 out_dict = {}
 out_dict['runs'] = {}
@@ -80,15 +89,15 @@ with open(in_file, newline='') as t:
         for row in reader:
             run = row['Run_s']
             assay = row['Assay_Type_s']
-            sample_name = row['Sample_Name_s']
+            sample_name = row['Sample_Name_s'].split(sep = '_')[1]
             out_dict['runs'][ run ] = paired_vs_single( row['LibraryLayout_s'] )
-            out_dict['samples'][ run ] = [ run ]
-            amplif = amplification( assay )
-            key = batch_key( sample_name, amplif )
-            out_dict['batches'].setdefault(key, []).append( run )
-            out_dict['sample_annotations'][ run ] = {
-                'amplification': amplif,
-                'library_selection': selection( assay, row['LibrarySelection_s'] ),
+            out_dict['samples'].setdefault( sample_name, []).append( run )
+            
+            if sample_name not in out_dict['batches'].setdefault( batch_key( sample_name ), []):
+                out_dict['batches'][ batch_key( sample_name ) ].append( sample_name )
+            out_dict['sample_annotations'][ sample_name ] = {
+                'amplification': amplification( sample_name ),
+                'library_selection': selection( sample_name ),
                 'library_source': row['LibrarySource_s'],
                 'machine': row['Instrument_s'],
                 'platform': row['Platform_s']
