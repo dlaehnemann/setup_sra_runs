@@ -27,13 +27,11 @@ def amplification( sample ):
     '''
     Determine whether the library is amplified and if so with which method.
     '''
-    if ( sample == 'YH1' ) | ( sample == 'YH2' ):
-        return "MDA"
-    elif ( sample == 'YH-Control' ) | ( sample == 'LC-T1' ) | ( sample == 'LN-T1' ):
+    if ( sample == 'RC-T' ) | ( sample == 'RN-T' ):
         return "none"
     else:
         cell = sample.split(sep = '-')[0]
-        if ( cell == "LC" ) | ( cell == "LN" ):
+        if ( cell == "RC" ) | ( cell == "RN" ):
             return "MDA"
         else:
             sys.exit("Encountered unknown sample name: '{}'. Please implement amplification handling before using this script's output.\n", sn)
@@ -43,13 +41,11 @@ def selection( sample ):
     '''
     Determine whether the library underwent some sort of target selection.
     '''
-    if ( sample == 'YH1' ) | ( sample == 'YH2' ) | ( sample == 'YH-Control' ):
-        return "WG"
-    elif ( sample == 'LC-T1' ) | ( sample == 'LN-T1' ):
+    if ( sample == 'RC-T' ) | ( sample == 'RN-T' ):
         return "WX"
     else:
         cell = sample.split(sep = '-')[0]
-        if ( cell == "LC" ) | ( cell == "LN" ):
+        if ( cell == "RC" ) | ( cell == "RN" ):
             return "WX"
         else:
             sys.exit("Encountered unknown sample name: '{}'. Please implement library selection handling before using this script's output.\n", sn)
@@ -59,20 +55,16 @@ def batch_key( sample ):
     '''
     Create a unique batch key for each run, to sensibly group runs.
     '''
-    if ( sample == 'YH1' ) | ( sample == 'YH2' ):
-        return "YH_single-cell"
-    elif sample == 'YH-Control':
-        return "YH_bulk"
-    elif sample == 'LC-T1':
-        return "ET_tumor_bulk"
-    elif sample == 'LN-T1':
-        return "ET_normal_bulk"
+    if sample == 'RC-T':
+        return "ccRCC_tumor_bulk"
+    elif sample == 'RN-T':
+        return "ccRCC_normal_bulk"
     else:
         cell = sample.split(sep = '-')[0]
-        if cell == "LC":
-            return "ET_tumor_single-cell"
-        elif cell == "LN":
-            return "ET_normal_single-cell"
+        if cell == "RC":
+            return "ccRCC_tumor_single-cell"
+        elif cell == "RN":
+            return "ccRCC_normal_single-cell"
         else:
             sys.exit("Encountered unknown sample name: '{}'. Please implement batch handling before using this script's output.\n", sn)
 
